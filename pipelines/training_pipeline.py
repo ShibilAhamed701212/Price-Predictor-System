@@ -1,3 +1,5 @@
+import os
+
 from steps.data_ingestion_step import data_ingestion_step
 from steps.data_splitter_step import data_splitter_step
 from steps.feature_engineering_step import feature_engineering_step
@@ -19,7 +21,7 @@ def ml_pipeline():
 
     # Data Ingestion Step
     raw_data = data_ingestion_step(
-        file_path="/Users/paulsomendra/Desktop/prices-predictor-system/data/archive.zip"
+        file_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "archive.zip")
     )
 
     # Handling Missing Values Step
