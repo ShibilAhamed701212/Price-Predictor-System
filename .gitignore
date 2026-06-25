@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.Python
+
+# macOS
+.DS_Store
+__MACOSX/
+
+# Generated / extracted data
+extracted_data/
+
+# IDEs
+.vscode/
+.idea/
+
+# MLflow local DB
+mlruns/.trash/
