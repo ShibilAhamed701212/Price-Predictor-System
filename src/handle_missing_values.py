@@ -47,7 +47,12 @@ class DropMissingValuesStrategy(MissingValueHandlingStrategy):
         pd.DataFrame: The DataFrame with missing values dropped.
         """
         logging.info(f"Dropping missing values with axis={self.axis} and thresh={self.thresh}")
-        df_cleaned = df.dropna(axis=self.axis, thresh=self.thresh)
+        if self.thresh is None:
+            # pandas 3 treats an explicit thresh=None as "require 0 non-NA values" and
+            # drops every row, so only pass thresh when one was given.
+            df_cleaned = df.dropna(axis=self.axis)
+        else:
+            df_cleaned = df.dropna(axis=self.axis, thresh=self.thresh)
         logging.info("Missing values dropped.")
         return df_cleaned
 
@@ -90,7 +95,9 @@ class FillMissingValuesStrategy(MissingValueHandlingStrategy):
             )
         elif self.method == "mode":
             for column in df_cleaned.columns:
-                df_cleaned[column].fillna(df[column].mode().iloc[0], inplace=True)
+                mode = df[column].mode()
+                if not mode.empty:  # an all-NaN column has no mode
+                    df_cleaned[column] = df_cleaned[column].fillna(mode.iloc[0])
         elif self.method == "constant":
             df_cleaned = df_cleaned.fillna(self.fill_value)
         else:

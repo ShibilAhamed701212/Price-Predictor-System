@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # The unit tests only need the libraries used by src/ and the steps' ZenML
+      # decorator, not the full MLflow/ZenML server stack from requirements.txt.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy scikit-learn matplotlib seaborn zenml pytest ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        env:
+          ZENML_ANALYTICS_OPT_IN: "false"
+        run: pytest -q

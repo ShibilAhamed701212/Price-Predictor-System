@@ -118,7 +118,6 @@
 import logging
 from abc import ABC, abstractmethod
 
-import numpy as np
 import pandas as pd
 from sklearn.base import RegressorMixin
 from sklearn.metrics import mean_squared_error, r2_score

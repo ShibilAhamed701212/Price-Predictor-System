@@ -76,11 +76,14 @@ def predictor(
     # Convert the data into a DataFrame with the correct columns
     df = pd.DataFrame(data["data"], columns=expected_columns)
 
+    # The model was trained on log1p("Gr Liv Area") and a log1p(SalePrice) target
+    df["Gr Liv Area"] = np.log1p(df["Gr Liv Area"])
+
     # Convert DataFrame to JSON list for prediction
     json_list = json.loads(json.dumps(list(df.T.to_dict().values())))
     data_array = np.array(json_list)
 
-    # Run the prediction
-    prediction = service.predict(data_array)
+    # Run the prediction and convert it back from log scale to a sale price
+    prediction = np.expm1(service.predict(data_array))
 
     return prediction

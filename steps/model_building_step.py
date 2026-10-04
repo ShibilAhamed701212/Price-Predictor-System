@@ -3,18 +3,17 @@ from typing import Annotated
 
 import mlflow
 import pandas as pd
-from sklearn.base import RegressorMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-from zenml import ArtifactConfig, step
+from zenml import ArtifactConfig, Model, step
 from zenml.client import Client
 
-# Get the active experiment tracker from ZenML
+# Get the active experiment tracker from ZenML (None on a stack without one, such as
+# the default stack; the step then fails with a clear message instead of at import).
 experiment_tracker = Client().active_stack.experiment_tracker
-from zenml import Model
 
 model = Model(
     name="prices_predictor",
@@ -24,7 +23,11 @@ model = Model(
 )
 
 
-@step(enable_cache=False, experiment_tracker=experiment_tracker.name, model=model)
+@step(
+    enable_cache=False,
+    experiment_tracker=experiment_tracker.name if experiment_tracker else None,
+    model=model,
+)
 def model_building_step(
     X_train: pd.DataFrame, y_train: pd.Series
 ) -> Annotated[Pipeline, ArtifactConfig(name="sklearn_pipeline", is_model_artifact=True)]:
@@ -38,6 +41,12 @@ def model_building_step(
     Returns:
     Pipeline: The trained scikit-learn pipeline including preprocessing and the Linear Regression model.
     """
+    if experiment_tracker is None:
+        raise RuntimeError(
+            "The active ZenML stack has no experiment tracker. Register an MLflow "
+            "experiment tracker and set a stack that uses it (see the README)."
+        )
+
     # Ensure the inputs are of the correct type
     if not isinstance(X_train, pd.DataFrame):
         raise TypeError("X_train must be a pandas DataFrame.")

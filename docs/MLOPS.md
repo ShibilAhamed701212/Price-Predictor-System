@@ -53,7 +53,7 @@ graph TD
 | Category | Data Captured | Example |
 |---|---|---|
 | **Parameters** | Model type, column configuration | `model_type = linear_regression` |
-| **Metrics** | MSE, R², MAE, RMSE (training) | `training_r2_score = 0.7715` |
+| **Metrics** | MSE, R², MAE, RMSE (training) | `training_r2_score = 0.8939` |
 | **Model Artifacts** | Serialized Pipeline object | `model.pkl` (~10 KB) |
 | **Environment** | Python version, package versions | `python_env.yaml` |
 | **Source Code** | Entry point script | `run_pipeline.py` |
@@ -97,7 +97,7 @@ The deployment pipeline (`run_deployment.py`) attempts to:
 3. Start a local MLflow model server as a daemon process
 4. Run an inference pipeline against the deployed service
 
-**Current Limitation:** MLflow's daemon functionality is not supported on Windows. The deployment pipeline will log a warning and fail to start the server. The code structure exists and is functional on Linux/macOS.
+**Current Limitation:** MLflow's daemon functionality is not supported on Windows. On Linux the full flow (deploy, inference pipeline, `sample_predict.py`, `--stop-service`) was verified on 2026-10-04.
 
 ### Inference Pipeline Components
 
@@ -142,7 +142,7 @@ The pipeline is considered successful when:
 | **Single model** (Linear Regression only) | No baseline comparison, no ensemble |
 | **No cross-validation** | Single 80/20 split may not represent true generalization |
 | **No hyperparameter tuning** | Default LinearRegression hyperparameters only |
-| **Categorical column handling** | Pipeline logs "Categorical columns: []" — one-hot encoding path is untested because no categorical columns survive log transformation |
+| **Categorical column handling** | Pipeline logs "Categorical columns: []" — no categorical columns reach the model because the outlier step keeps only numeric columns |
 | **Fixed outlier threshold** | Z-score threshold of 3 is arbitrary and not optimized |
 | **No feature selection** | All 38 numeric columns used regardless of predictive value |
 | **Log-scale metrics only** | MSE and R² reported on log-transformed values, making dollar-interpretation non-trivial |
@@ -154,8 +154,8 @@ The pipeline is considered successful when:
 
 | Requirement | Current State | Production Target |
 |---|---|---|
-| **CI/CD** | None | GitHub Actions / GitLab CI for automated testing |
-| **Testing** | None | Unit tests for `src/`, integration tests for `steps/`, end-to-end pipeline test |
+| **CI/CD** | GitHub Actions: ruff + pytest | Add an end-to-end pipeline run |
+| **Testing** | Unit tests for `src/` and the outlier step | Integration tests for the remaining steps, end-to-end pipeline test |
 | **Data Validation** | None | Great Expectations or Pandera for schema and distribution checks |
 | **Feature Store** | None | Feast or Tecton for feature definitions and serving |
 | **Model Registry** | ZenML Model list | MLflow Model Registry with staging/production stages |
@@ -183,7 +183,7 @@ The pipeline is considered successful when:
 
 3. **Infrastructure improvements:**
    - Docker containerization
-   - CI/CD pipeline with automated testing
+   - End-to-end pipeline test in CI
    - Model serving on Kubernetes
    - Monitoring dashboard with alerting
    - Retraining trigger based on performance degradation or schedule

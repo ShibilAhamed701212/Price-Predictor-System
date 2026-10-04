@@ -1,4 +1,5 @@
 import json
+import math
 
 import requests
 
@@ -52,6 +53,11 @@ input_data = {
     ]
 }
 
+# The model was trained on log1p("Gr Liv Area") and a log1p(SalePrice) target, so apply
+# the same transform to the input and invert it on the prediction.
+for record in input_data["dataframe_records"]:
+    record["Gr Liv Area"] = math.log1p(record["Gr Liv Area"])
+
 # Convert the input data to JSON format
 json_data = json.dumps(input_data)
 
@@ -65,7 +71,8 @@ response = requests.post(url, headers=headers, data=json_data)
 if response.status_code == 200:
     # If successful, print the prediction result
     prediction = response.json()
-    print("Prediction:", prediction)
+    prices = [math.expm1(p) for p in prediction["predictions"]]
+    print("Predicted SalePrice:", ", ".join(f"${p:,.2f}" for p in prices))
 else:
     # If there was an error, print the status code and the response
     print(f"Error: {response.status_code}")

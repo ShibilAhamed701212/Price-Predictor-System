@@ -1,11 +1,38 @@
+"""Predict a house price with the trained scikit-learn pipeline.
+
+By default the latest ``sklearn_pipeline`` artifact produced by ``run_pipeline.py`` is
+loaded from the active ZenML store. Pass ``--model-path`` (or set ``MODEL_PATH``) to load
+a pickled pipeline file instead.
+"""
+
+import argparse
+import os
 import pickle
+
 import numpy as np
 import pandas as pd
 
-MODEL_PATH = r"C:\Users\sclip\AppData\Roaming\zenml\local_stores\f4dc7a44-1501-47f7-85d1-4c6eeb9f08f2\model_building_step\sklearn_pipeline\7abc11dc-2256-4c1f-87af-022aad2c508f\3af4d1ed\artifact.pkl"
 
-with open(MODEL_PATH, "rb") as f:
-    pipeline = pickle.load(f)
+def load_pipeline(model_path=None):
+    if model_path:
+        # Only load pickle files you created yourself: unpickling can run arbitrary code.
+        with open(model_path, "rb") as f:
+            return pickle.load(f)
+
+    from zenml.client import Client
+
+    return Client().get_artifact_version("sklearn_pipeline").load()
+
+
+parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+parser.add_argument(
+    "--model-path",
+    default=os.environ.get("MODEL_PATH"),
+    help="Path to a pickled sklearn pipeline (defaults to the latest ZenML artifact).",
+)
+args = parser.parse_args()
+
+pipeline = load_pipeline(args.model_path)
 
 sample = pd.DataFrame([{
     "Order": 1, "PID": 1, "MS SubClass": 60, "Lot Frontage": 65.0, "Lot Area": 8450,
@@ -26,4 +53,3 @@ pred_log = pipeline.predict(sample)[0]
 pred_price = np.expm1(pred_log)
 
 print(f"Predicted SalePrice: ${pred_price:,.2f}")
-input("\nPress Enter to exit...")

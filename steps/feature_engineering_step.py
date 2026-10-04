@@ -1,4 +1,6 @@
 import pandas as pd
+from zenml import step
+
 from src.feature_engineering import (
     FeatureEngineer,
     LogTransformation,
@@ -6,7 +8,6 @@ from src.feature_engineering import (
     OneHotEncoding,
     StandardScaling,
 )
-from zenml import step
 
 
 @step

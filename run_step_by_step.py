@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 
 # Make sure we can import from the project
 sys.path.insert(0, os.path.dirname(__file__))
@@ -22,17 +21,18 @@ print("Loading the house prices dataset from archive.zip")
 print("-" * 70)
 input("\nPress Enter to run this step...")
 
-import pandas as pd
 import zipfile
+
+import pandas as pd
 
 data_path = os.path.join(os.path.dirname(__file__), "data", "archive.zip")
 with zipfile.ZipFile(data_path) as z:
     csv_file = [f for f in z.namelist() if f.endswith(".csv")][0]
     df = pd.read_csv(z.open(csv_file))
 
-print(f"\nDataset loaded successfully!")
+print("\nDataset loaded successfully!")
 print(f"Shape: {df.shape[0]} rows × {df.shape[1]} columns")
-print(f"\nFirst 5 rows:")
+print("\nFirst 5 rows:")
 print(df.head().to_string())
 print(f"\nColumns: {list(df.columns)}")
 input("\nPress Enter for next step...")
@@ -126,8 +126,8 @@ print("Training a Linear Regression model on the data")
 print("-" * 70)
 input("\nPress Enter to run this step...")
 
-from sklearn.linear_model import LinearRegression
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 
 numerical_cols = X_train.select_dtypes(exclude=["object", "category"]).columns
@@ -161,11 +161,11 @@ r2 = r2_score(y_test, y_pred)
 y_test_actual = np.expm1(y_test)
 y_pred_actual = np.expm1(y_pred)
 
-print(f"\nModel Performance:")
+print("\nModel Performance:")
 print(f"  Mean Squared Error (MSE): {mse:.4f}")
 print(f"  R-Squared Score:          {r2:.4f}")
 print(f"  Accuracy (rough):         {r2*100:.1f}%")
-print(f"\nSample predictions:")
+print("\nSample predictions:")
 results = pd.DataFrame({"Actual Price": y_test_actual.head(10), "Predicted Price": y_pred_actual[:10]})
 print(results.to_string())
 

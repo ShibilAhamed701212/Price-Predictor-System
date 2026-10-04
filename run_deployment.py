@@ -1,12 +1,13 @@
 import click
-from pipelines.deployment_pipeline import (
-    continuous_deployment_pipeline,
-    inference_pipeline,
-)
 from rich import print
 from zenml.integrations.mlflow.mlflow_utils import get_tracking_uri
 from zenml.integrations.mlflow.model_deployers.mlflow_model_deployer import (
     MLFlowModelDeployer,
+)
+
+from pipelines.deployment_pipeline import (
+    continuous_deployment_pipeline,
+    inference_pipeline,
 )
 
 
@@ -60,7 +61,7 @@ def run_main(stop_service: bool):
         pipeline_step_name="mlflow_model_deployer_step",
     )
 
-    if service[0]:
+    if service:
         print(
             f"The MLflow prediction server is running locally as a daemon "
             f"process and accepts inference requests at:\n"
