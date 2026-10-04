@@ -58,7 +58,7 @@ Raw Data
 │ Step 4: Outlier Detection & Removal          │
 │ - Z-score method on SalePrice                │
 │ - Threshold: |z| > 3                         │
-│ - Removes ~80-100 outlier rows               │
+│ - Removes 20 outlier rows (2930 → 2910)      │
 └──────────────────────────────────────────────┘
   │
   ▼
@@ -117,11 +117,13 @@ Typical columns with NaNs in the Ames dataset include `Lot Frontage`, `Mas Vnr A
 ```python
 detector = ZScoreOutlierDetection(threshold=3)
 outlier_detector = OutlierDetector(detector)
-outliers = outlier_detector.detect_outliers(df_numeric)
-cleaned_df = outlier_detector.handle_outliers(df_numeric, method="remove")
+df_numeric = df.select_dtypes(include=[int, float])
+outliers = outlier_detector.detect_outliers(df_numeric[[column_name]])[column_name]
+cleaned_df = df_numeric[~outliers]
 ```
 
-- Applied to `SalePrice` column after log transformation
+- Applied to the `SalePrice` column (`column_name`) after log transformation; earlier versions applied it to every numeric column, which removed 872 rows and every house with a basement half bath
+- Only numeric columns are passed on, so categorical columns are dropped at this step
 - Data points with |z| > 3 are identified as outliers
 - Outliers are **removed** (not capped/clipped)
 
@@ -193,8 +195,8 @@ Key details:
 | Test size | 0.2 (20%) |
 | Random state | 42 |
 | Feature columns | 38 numerical (no categorical after log transform) |
-| Training samples | ~1,875 (after outlier removal) |
-| Test samples | ~469 |
+| Training samples | 2,328 (after outlier removal) |
+| Test samples | 582 |
 
 ## Evaluation Metrics
 
@@ -216,10 +218,12 @@ Proportion of variance explained by the model. Ranges from 0 to 1 (higher is bet
 
 | Metric | Value (latest run) |
 |---|---|
-| `training_r2_score` | 0.7715 |
-| `training_mean_squared_error` | 0.0316 |
-| `training_root_mean_squared_error` | 0.1776 |
-| `training_mean_absolute_error` | 0.1334 |
+| `training_r2_score` | 0.8939 |
+| `training_mean_squared_error` | 0.0163 |
+| `training_root_mean_squared_error` | 0.1277 |
+| `training_mean_absolute_error` | 0.0901 |
+
+Test-set metrics from `model_evaluator_step` on the same run: MSE 0.0199, R² 0.8568.
 
 ### Interpreting Metrics
 
@@ -227,11 +231,11 @@ Because the model trains on log-transformed `SalePrice`, the metrics are compute
 
 ```python
 # Typical dollar error (approximate)
-rmse_log = 0.1776
+rmse_log = 0.1277
 # At median house price (~$160,000):
 # log(160000) ≈ 11.98
-# Error in log space: 0.1776
-# Error in dollar space at that price: exp(11.98) * 0.1776 ≈ $27,500
+# Error in log space: 0.1277
+# Error in dollar space at that price: exp(11.98) * 0.1277 ≈ $20,400
 ```
 
 This is a rough approximation; exact interpretation requires computing metrics on inverse-transformed predictions.

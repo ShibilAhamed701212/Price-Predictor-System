@@ -196,4 +196,4 @@ flowchart LR
 | **Z-score outlier detection** over IQR | Simpler threshold interpretation for normally distributed features; configurable sensitivity via threshold parameter |
 | **SimpleImputer + OneHotEncoder pipeline** | Scikit-learn `Pipeline` ensures consistent preprocessing between training and inference, preventing data leakage |
 | **SQLite tracking store** | Zero-configuration experiment persistence suitable for local development; upgradeable to PostgreSQL for production |
-| **Absolute model path in predict.py** | Trade-off: simpler local testing at the cost of portability; alternative is ZenML `Model.load_artifact()` API |
+| **ZenML artifact lookup in predict.py** | Loads the latest `sklearn_pipeline` artifact by name; `--model-path` covers a standalone pickle |

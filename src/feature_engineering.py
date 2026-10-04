@@ -137,7 +137,7 @@ class OneHotEncoding(FeatureEngineeringStrategy):
         features (list): The list of categorical features to apply the one-hot encoding to.
         """
         self.features = features
-        self.encoder = OneHotEncoder(sparse=False, drop="first")
+        self.encoder = OneHotEncoder(sparse_output=False, drop="first")
 
     def apply_transformation(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -154,8 +154,9 @@ class OneHotEncoding(FeatureEngineeringStrategy):
         encoded_df = pd.DataFrame(
             self.encoder.fit_transform(df[self.features]),
             columns=self.encoder.get_feature_names_out(self.features),
+            index=df.index,
         )
-        df_transformed = df_transformed.drop(columns=self.features).reset_index(drop=True)
+        df_transformed = df_transformed.drop(columns=self.features)
         df_transformed = pd.concat([df_transformed, encoded_df], axis=1)
         logging.info("One-hot encoding completed.")
         return df_transformed
