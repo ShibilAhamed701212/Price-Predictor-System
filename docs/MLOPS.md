@@ -53,7 +53,7 @@ graph TD
 | Category | Data Captured | Example |
 |---|---|---|
 | **Parameters** | Model type, column configuration | `model_type = linear_regression` |
-| **Metrics** | MSE, R², MAE, RMSE (training) | `training_r2_score = 0.8939` |
+| **Metrics** | MSE, R², MAE, RMSE (training) | `training_r2_score = 0.8937` |
 | **Model Artifacts** | Serialized Pipeline object | `model.pkl` (~10 KB) |
 | **Environment** | Python version, package versions | `python_env.yaml` |
 | **Source Code** | Entry point script | `run_pipeline.py` |
@@ -97,7 +97,7 @@ The deployment pipeline (`run_deployment.py`) attempts to:
 3. Start a local MLflow model server as a daemon process
 4. Run an inference pipeline against the deployed service
 
-**Current Limitation:** MLflow's daemon functionality is not supported on Windows. On Linux the full flow (deploy, inference pipeline, `sample_predict.py`, `--stop-service`) was verified on 2026-10-04.
+**Current Limitation:** MLflow's daemon functionality is not supported on Windows. On Linux the full flow (deploy, inference pipeline, `sample_predict.py`, `--stop-service`) was verified on 2026-10-20. Each run removes the previous deployment so the newly trained model is the one served.
 
 ### Inference Pipeline Components
 
@@ -144,7 +144,7 @@ The pipeline is considered successful when:
 | **No hyperparameter tuning** | Default LinearRegression hyperparameters only |
 | **Categorical column handling** | Pipeline logs "Categorical columns: []" — no categorical columns reach the model because the outlier step keeps only numeric columns |
 | **Fixed outlier threshold** | Z-score threshold of 3 is arbitrary and not optimized |
-| **No feature selection** | All 38 numeric columns used regardless of predictive value |
+| **No feature selection** | All 36 numeric feature columns used regardless of predictive value |
 | **Log-scale metrics only** | MSE and R² reported on log-transformed values, making dollar-interpretation non-trivial |
 | **Deterministic caching** | Cache hits from ZenML may mask data drift or concept drift |
 

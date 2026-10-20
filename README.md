@@ -324,15 +324,15 @@ python run_deployment.py --stop-service
 
 ## Results
 
-Numbers below come from a real run of `python run_pipeline.py` on 2026-10-04 (Linux, Python 3.11, scikit-learn 1.8, pandas 3.0, ZenML 0.96, MLflow 3.16). The split is seeded, so repeated runs give the same values.
+Numbers below come from a real run of `python run_pipeline.py` on 2026-10-20 (Linux, Python 3.11, scikit-learn 1.8, pandas 3.0, ZenML 0.96, MLflow 3.16). The split is seeded, so repeated runs give the same values.
 
 ### Model Performance (log-transformed `SalePrice`)
 
 | Metric | Value |
 |---|---|
-| **Test R²** | 0.8568 |
-| **Test MSE** | 0.0199 |
-| **Training R²** (MLflow autolog) | 0.8939 |
+| **Test R²** | 0.8562 |
+| **Test MSE** | 0.0200 |
+| **Training R²** (MLflow autolog) | 0.8937 |
 | **Training RMSE** (MLflow autolog) | 0.1277 |
 | **Training MAE** (MLflow autolog) | 0.0901 |
 | Rows after outlier removal | 2910 (train 2328 / test 582) |
@@ -343,18 +343,18 @@ Numbers below come from a real run of `python run_pipeline.py` on 2026-10-04 (Li
 $ python run_pipeline.py
 ...
 Removed 20 outlier rows based on 'SalePrice'.
-Model Evaluation Metrics: {'Mean Squared Error': 0.019891652202700456, 'R-Squared': 0.8567861675345625}
-Pipeline run has finished in 8.703s.
+Model Evaluation Metrics: {'Mean Squared Error': 0.019969374261074424, 'R-Squared': 0.8562265924055883}
+Pipeline run has finished in 10.263s.
 
 $ python predict.py
-Predicted SalePrice: $221,544.47
+Predicted SalePrice: $222,122.40
 
 $ python run_deployment.py && python sample_predict.py
 ...
 The MLflow prediction server is running locally as a daemon process and accepts
 inference requests at:
     http://127.0.0.1:8000/invocations
-Predicted SalePrice: $182,937.07
+Predicted SalePrice: $182,360.80
 ```
 
 ### Screenshots
@@ -383,17 +383,20 @@ The tests in `tests/` cover data ingestion, missing-value strategies, feature en
 | `DropMissingValuesStrategy` passed `thresh=None`, which drops every row on pandas 3 | Only passes `thresh` when set |
 | Importing the training step on a stack without an experiment tracker crashed with `'NoneType' object has no attribute 'name'` | Clear error message from the step instead |
 | `run_deployment.py` raised `IndexError` when no service was found | Checks for an empty result |
+| `Order` and `PID` (row identifiers) were used as model features | `build_pipeline` in `src/model_building.py` leaves them out; clients may still send them |
+| Re-running `run_deployment.py` kept serving the **first** model ever deployed (the inference pipeline still priced the second sample house at $1,375 after retraining) | Old deployments are removed before redeploying, so the newly trained model is served |
+| `run_deployment.py --stop-service` looked for `model_name="prices_predictor"`, but services are registered as `model`, so it never stopped anything | Looks services up by pipeline and step |
+| The training step refit the one-hot encoder inside the already-trained pipeline just to log feature names | Reads them with `get_feature_names_out()` |
 | README stack commands used `--type=mlflow` (rejected by ZenML) and `zenml` lacked the `[local]` extra needed for the local store | Commands use `--flavor=mlflow`; requirements install `zenml[local]` |
 
 ## Known Limitations
 
-- **Categorical features are not used.** The outlier step keeps only numeric columns, so the model's one-hot branch receives no columns (`Categorical columns: []` in the logs).
-- **Identifier columns are features.** `Order` and `PID` are fed to the regression.
+- **Categorical features are not used.** The outlier step keeps only numeric columns, so the model's one-hot branch receives no columns (`Categorical columns: []` in the logs). Adding them raised test R² from 0.856 to 0.874 in a quick check, but every prediction client would then have to send ~40 more fields, so it is left as a roadmap item.
 - **Preprocessing before the split.** Mean imputation and outlier statistics are computed on the full dataset before the train/test split, so the test score is slightly optimistic.
 - **Log-scale metrics.** MSE and R² are on `log1p(SalePrice)`, not dollars.
 - **Single model, single split.** No cross-validation or hyperparameter tuning.
 - **Windows serving.** MLflow's daemon server does not run on Windows.
-- `config.yaml` (owner and license fields) is not loaded by any script.
+- `config.yaml` is not loaded by any script.
 
 ## MLflow Integration
 
