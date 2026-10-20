@@ -8,7 +8,7 @@ settings:
 # Configuration of the Model Control Plane
 model:
   name: prices_predictor
-  license: Apache 2.0
+  license: MIT
   description: Predictor of housing prices.
   owner: Paul Somendra
   tags: ["regression", "housing", "price_prediction"]
