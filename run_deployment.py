@@ -20,29 +20,29 @@ from pipelines.deployment_pipeline import (
 )
 def run_main(stop_service: bool):
     """Run the prices predictor deployment pipeline"""
-    model_name = "prices_predictor"
+    # Get the MLflow model deployer stack component
+    model_deployer = MLFlowModelDeployer.get_active_model_deployer()
+
+    # Services started by the deployment step. They are registered under MLflow's model
+    # name ("model"), not "prices_predictor", so they are looked up by pipeline and step.
+    existing_services = model_deployer.find_model_server(
+        pipeline_name="continuous_deployment_pipeline",
+        pipeline_step_name="mlflow_model_deployer_step",
+    )
 
     if stop_service:
-        # Get the MLflow model deployer stack component
-        model_deployer = MLFlowModelDeployer.get_active_model_deployer()
-
-        # Fetch existing services with same pipeline name, step name, and model name
-        existing_services = model_deployer.find_model_server(
-            pipeline_name="continuous_deployment_pipeline",
-            pipeline_step_name="mlflow_model_deployer_step",
-            model_name=model_name,
-            running=True,
-        )
-
-        if existing_services:
-            existing_services[0].stop(timeout=10)
+        for service in existing_services:
+            if service.is_running:
+                service.stop(timeout=10)
         return
+
+    # Remove previous deployments first: otherwise the deployer step matches the old service
+    # and keeps serving the first model ever deployed instead of the newly trained one.
+    for service in existing_services:
+        model_deployer.delete_model_server(service.uuid, timeout=10)
 
     # Run the continuous deployment pipeline
     continuous_deployment_pipeline()
-
-    # Get the active model deployer
-    model_deployer = MLFlowModelDeployer.get_active_model_deployer()
 
     # Run the inference pipeline
     inference_pipeline()
@@ -51,8 +51,8 @@ def run_main(stop_service: bool):
         "Now run \n "
         f"    mlflow ui --backend-store-uri {get_tracking_uri()}\n"
         "To inspect your experiment runs within the mlflow UI.\n"
-        "You can find your runs tracked within the `mlflow_example_pipeline`"
-        "experiment. Here you'll also be able to compare the two runs."
+        "You can find your runs tracked within the `continuous_deployment_pipeline` "
+        "experiment."
     )
 
     # Fetch existing services with the same pipeline name, step name, and model name
