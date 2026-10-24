@@ -3,13 +3,11 @@ from typing import Annotated
 
 import mlflow
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
 from zenml import ArtifactConfig, Model, step
 from zenml.client import Client
+
+from src.model_building import build_pipeline
 
 # Get the active experiment tracker from ZenML (None on a stack without one, such as
 # the default stack; the step then fails with a clear message instead of at import).
@@ -18,7 +16,7 @@ experiment_tracker = Client().active_stack.experiment_tracker
 model = Model(
     name="prices_predictor",
     version=None,
-    license="Apache 2.0",
+    license="MIT",
     description="Price prediction model for houses.",
 )
 
@@ -53,32 +51,7 @@ def model_building_step(
     if not isinstance(y_train, pd.Series):
         raise TypeError("y_train must be a pandas Series.")
 
-    # Identify categorical and numerical columns
-    categorical_cols = X_train.select_dtypes(include=["object", "category"]).columns
-    numerical_cols = X_train.select_dtypes(exclude=["object", "category"]).columns
-
-    logging.info(f"Categorical columns: {categorical_cols.tolist()}")
-    logging.info(f"Numerical columns: {numerical_cols.tolist()}")
-
-    # Define preprocessing for categorical and numerical features
-    numerical_transformer = SimpleImputer(strategy="mean")
-    categorical_transformer = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("onehot", OneHotEncoder(handle_unknown="ignore")),
-        ]
-    )
-
-    # Bundle preprocessing for numerical and categorical data
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("num", numerical_transformer, numerical_cols),
-            ("cat", categorical_transformer, categorical_cols),
-        ]
-    )
-
-    # Define the model training pipeline
-    pipeline = Pipeline(steps=[("preprocessor", preprocessor), ("model", LinearRegression())])
+    pipeline = build_pipeline(X_train)
 
     # Start an MLflow run to log the model training process
     if not mlflow.active_run():
@@ -92,15 +65,9 @@ def model_building_step(
         pipeline.fit(X_train, y_train)
         logging.info("Model training completed.")
 
-        # Log the columns that the model expects
-        onehot_encoder = (
-            pipeline.named_steps["preprocessor"].transformers_[1][1].named_steps["onehot"]
-        )
-        onehot_encoder.fit(X_train[categorical_cols])
-        expected_columns = numerical_cols.tolist() + list(
-            onehot_encoder.get_feature_names_out(categorical_cols)
-        )
-        logging.info(f"Model expects the following columns: {expected_columns}")
+        # Log the features the fitted model uses (without refitting any part of it)
+        expected_columns = list(pipeline.named_steps["preprocessor"].get_feature_names_out())
+        logging.info(f"Model uses the following features: {expected_columns}")
 
     except Exception as e:
         logging.error(f"Error during model training: {e}")

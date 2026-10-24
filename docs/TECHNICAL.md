@@ -194,7 +194,7 @@ Key details:
 | Model | `LinearRegression` |
 | Test size | 0.2 (20%) |
 | Random state | 42 |
-| Feature columns | 38 numerical (no categorical after log transform) |
+| Feature columns | 36 numerical (`Order` and `PID` excluded; categorical columns are dropped by the outlier step) |
 | Training samples | 2,328 (after outlier removal) |
 | Test samples | 582 |
 
@@ -218,12 +218,12 @@ Proportion of variance explained by the model. Ranges from 0 to 1 (higher is bet
 
 | Metric | Value (latest run) |
 |---|---|
-| `training_r2_score` | 0.8939 |
+| `training_r2_score` | 0.8937 |
 | `training_mean_squared_error` | 0.0163 |
 | `training_root_mean_squared_error` | 0.1277 |
 | `training_mean_absolute_error` | 0.0901 |
 
-Test-set metrics from `model_evaluator_step` on the same run: MSE 0.0199, R² 0.8568.
+Test-set metrics from `model_evaluator_step` on the same run: MSE 0.0200, R² 0.8562.
 
 ### Interpreting Metrics
 

@@ -3,9 +3,11 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 from sklearn.base import RegressorMixin
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 # Setup logging configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -98,6 +100,42 @@ class ModelBuilder:
         """
         logging.info("Building and training the model using the selected strategy.")
         return self._strategy.build_and_train_model(X_train, y_train)
+
+
+# Row identifiers in the Ames data. They carry no information about the price, so they
+# are left out of the features (the ColumnTransformer drops them if a caller sends them).
+ID_COLUMNS = ["Order", "PID"]
+
+
+def build_pipeline(X_train: pd.DataFrame) -> Pipeline:
+    """Build the (unfitted) preprocessing + Linear Regression pipeline for X_train's columns."""
+    features = X_train.drop(columns=ID_COLUMNS, errors="ignore")
+
+    # Select by numeric dtype so pandas 3 "str" columns are treated as categorical too
+    numerical_cols = features.select_dtypes(include="number").columns
+    categorical_cols = features.select_dtypes(exclude="number").columns
+
+    logging.info(f"Categorical columns: {categorical_cols.tolist()}")
+    logging.info(f"Numerical columns: {numerical_cols.tolist()}")
+
+    # Define preprocessing for categorical and numerical features
+    numerical_transformer = SimpleImputer(strategy="mean")
+    categorical_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+        ]
+    )
+
+    # Bundle preprocessing for numerical and categorical data; other columns are dropped
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", numerical_transformer, numerical_cols),
+            ("cat", categorical_transformer, categorical_cols),
+        ]
+    )
+
+    return Pipeline(steps=[("preprocessor", preprocessor), ("model", LinearRegression())])
 
 
 # Example usage
